@@ -4,7 +4,16 @@
 
 #include "config.h"
 
+#ifdef QT_DEBUG
+#define QT_NOT_REACHED() qt_assert("Not reached!",__FILE__,__LINE__)
+#else
+#define QT_NOT_REACHED() qt_noop()
+#endif
+
 #if OS(WINDOWS)
-#undef WEBCORE_EXPORT
-#define WEBCORE_EXPORT WTF_EXPORT_DECLARATION
+
+#ifndef WEBCORE_EXPORT
+#define WEBCORE_EXPORT WTF_IMPORT_DECLARATION
+#endif // !WEBCORE_EXPORT
+
 #endif
