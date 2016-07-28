@@ -3,12 +3,15 @@ include(ECMPackageConfigHelpers)
 include(ECMQueryQmake)
 
 macro(macro_process_qtbase_prl_file qt_target_component)
+    if (NOT WIN32)
+        set(_libprefix lib)
+    endif ()
     if (TARGET ${qt_target_component})
         get_target_property(_lib_name ${qt_target_component} NAME)
-        string(REGEX REPLACE "::" "" _lib_name ${_lib_name})
+        string(REGEX REPLACE "::" "" _lib_name ${_lib_name}${CMAKE_DEBUG_POSTFIX})
         get_target_property(_lib_location ${qt_target_component} LOCATION)
         get_target_property(_prl_file_location ${qt_target_component} LOCATION)
-        string(REGEX REPLACE "^(.+/lib${_lib_name}).+$" "\\1.prl" _prl_file_location ${_prl_file_location})
+        string(REGEX REPLACE "^(.+/${_libprefix}${_lib_name}).+$" "\\1.prl" _prl_file_location ${_prl_file_location})
         get_target_property(_link_libs ${qt_target_component} INTERFACE_LINK_LIBRARIES)
         if (_link_libs)
             set(_list_sep ";")
@@ -17,8 +20,16 @@ macro(macro_process_qtbase_prl_file qt_target_component)
         endif ()
         if (EXISTS ${_prl_file_location})
             file(STRINGS ${_prl_file_location} prl_strings REGEX "QMAKE_PRL_LIBS")
-            string(REGEX REPLACE "QMAKE_PRL_LIBS *= *([^\n]*)" "\\1" static_depends ${prl_strings})
-            string(STRIP ${static_depends} static_depends)
+            if (NOT WIN32)
+                string(REGEX REPLACE "QMAKE_PRL_LIBS *= *([^\n]*)" "\\1" static_depends ${prl_strings})
+                string(STRIP ${static_depends} static_depends)
+            else ()
+                string(REGEX REPLACE "-l" "" static_depends ${prl_strings}) # Remove link flag symbols
+                string(REGEX REPLACE "QMAKE_PRL_LIBS" "" static_depends ${static_depends}) # Remove non links
+                string(REGEX REPLACE "=" "" static_depends ${static_depends}) # Remove non links
+                string(REGEX MATCHALL "[^ \t\n]+" static_depends ${static_depends}) # Split the line by whitespaces
+            endif ()
+            message(${static_depends})
             set_target_properties(${qt_target_component} PROPERTIES
                 "INTERFACE_LINK_LIBRARIES" "${_link_libs}${_list_sep}${static_depends}"
                 "IMPORTED_LOCATION" "${_lib_location}"
@@ -143,7 +154,7 @@ set(WTF_USE_UDIS86 1)
 
 
 get_target_property(QT_CORE_TYPE Qt5::Core TYPE)
-if (QT_CORE_TYPE MATCHES STATIC)
+if (QT_CORE_TYPE MATCHES STATIC_LIBRARY)
     set(QT_STATIC_BUILD ON)
 endif ()
 if (QT_STATIC_BUILD)
@@ -193,6 +204,10 @@ if (WIN32)
     set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELEASE "${CMAKE_LIBRARY_OUTPUT_DIRECTORY}")
     set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
     set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
+
+    if (${CMAKE_BUILD_TYPE} MATCHES "Debug")
+        set(CMAKE_DEBUG_POSTFIX d)
+    endif ()
 endif ()
 
 find_package(LibXml2 2.8.0 REQUIRED)
@@ -461,7 +476,6 @@ if (MSVC)
             set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} /DEBUG:FASTLINK")
             set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /DEBUG:FASTLINK")
         endif ()
-
     elseif (${CMAKE_BUILD_TYPE} MATCHES "Release")
         add_compile_options(/Oy-)
     endif ()
@@ -483,6 +497,10 @@ if (MSVC)
         # Use the multithreaded static runtime library instead of the default DLL runtime.
         string(REGEX REPLACE "/MD" "/MT" ${flag_var} "${${flag_var}}")
     endforeach ()
+
+    if (QT_STATIC_BUILD)
+        set(ICU_LIBRARIES sicuuc${CMAKE_DEBUG_POSTFIX} sicuin${CMAKE_DEBUG_POSTFIX} sicudt${CMAKE_DEBUG_POSTFIX})
+    endif ()
 endif ()
 
 if (NOT RUBY_FOUND AND RUBY_EXECUTABLE AND NOT RUBY_VERSION VERSION_LESS 1.9)

@@ -64,10 +64,13 @@ set(WebKit_PRIVATE_HEADERS_LOCATION Headers/${PROJECT_VERSION}/QtWebKit/Private)
 WEBKIT_FRAMEWORK(WebKit)
 
 set_target_properties(WebKit PROPERTIES VERSION ${PROJECT_VERSION} SOVERSION ${PROJECT_VERSION_MAJOR})
-install(TARGETS WebKit EXPORT WebKitTargets
-        DESTINATION "${LIB_INSTALL_DIR}"
-        INCLUDES DESTINATION "${CMAKE_INSTALL_PREFIX}/include/QtWebKitWidgets"
-)
+
+if (SHARED_CORE)
+    install(TARGETS WebKit EXPORT WebKitTargets
+            DESTINATION "${LIB_INSTALL_DIR}"
+            INCLUDES DESTINATION "${CMAKE_INSTALL_PREFIX}/include/QtWebKitWidgets"
+    )
+endif ()
 
 add_dependencies(WebKit WebCore)
 if (WIN32)

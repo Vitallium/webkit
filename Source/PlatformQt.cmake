@@ -42,16 +42,18 @@ install(FILES
     DESTINATION "${CMAKECONFIG_INSTALL_DIR}/Qt5WebKitWidgets"
 )
 
-install(EXPORT WebKitTargets
-    FILE WebKitTargets.cmake
-    NAMESPACE Qt5::
-    DESTINATION "${CMAKECONFIG_INSTALL_DIR}/Qt5WebKit"
-)
-install(EXPORT Qt5WebKitWidgetsTargets
-    FILE Qt5WebKitWidgetsTargets.cmake
-    NAMESPACE Qt5::
-    DESTINATION "${CMAKECONFIG_INSTALL_DIR}/Qt5WebKitWidgets"
-)
+if (SHARED_CODE)
+    install(EXPORT WebKitTargets
+        FILE WebKitTargets.cmake
+        NAMESPACE Qt5::
+        DESTINATION "${CMAKECONFIG_INSTALL_DIR}/Qt5WebKit"
+    )
+    install(EXPORT Qt5WebKitWidgetsTargets
+        FILE Qt5WebKitWidgetsTargets.cmake
+        NAMESPACE Qt5::
+        DESTINATION "${CMAKECONFIG_INSTALL_DIR}/Qt5WebKitWidgets"
+    )
+endif ()
 
 # Documentation
 
